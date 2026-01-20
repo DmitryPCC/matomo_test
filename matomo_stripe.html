@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Matomo + Stripe session_id test</title>
+
+  <!-- ========================= -->
+  <!-- Matomo base configuration -->
+  <!-- ========================= -->
+  <script>
+    var _paq = window._paq = window._paq || [];
+
+    // ВАЖНО: pageview будет отправлен ПОСЛЕ setCustomDimension
+    _paq.push(['enableLinkTracking']);
+  </script>
+
+  <script>
+    (function() {
+      var u = "https://MATOMO_URL/"; // <-- замени
+      _paq.push(['setTrackerUrl', u + 'matomo.php']);
+      _paq.push(['setSiteId', 'SITE_ID']); // <-- замени
+      var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+      g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+    })();
+  </script>
+</head>
+
+<body>
+
+  <h1>Matomo + Stripe session_id test</h1>
+
+  <p><strong>Generated session_id:</strong></p>
+  <pre id="sessionBox"></pre>
+
+  <button id="buyBtn">Buy (go to Stripe)</button>
+
+  <script>
+    // =========================
+    // 1. Генерация session_id
+    // =========================
+    const session_id = 'sess_' + crypto.randomUUID();
+    window.internal_session_id = session_id;
+
+    document.getElementById('sessionBox').innerText = session_id;
+
+    // =====================================
+    // 2. Передаём session_id в Matomo
+    // Custom Dimension (Visit scope)
+    // =====================================
+    _paq.push([
+      'setCustomDimension',
+      1, // <-- CUSTOM_DIMENSION_ID из Matomo
+      session_id
+    ]);
+
+    // =========================
+    // 3. Теперь отправляем PageView
+    // =========================
+    _paq.push(['trackPageView']);
+
+    console.log('session_id set in Matomo:', session_id);
+
+    // =========================
+    // 4. Кнопка Buy → Stripe
+    // =========================
+    document.getElementById('buyBtn').addEventListener('click', () => {
+      const STRIPE_PAYMENT_LINK =
+        'https://buy.stripe.com/test_XXXXXXXX'; // <-- замени
+
+      const stripeUrl =
+        STRIPE_PAYMENT_LINK +
+        '?client_reference_id=' +
+        encodeURIComponent(session_id);
+
+      window.location.href = stripeUrl;
+    });
+  </script>
+
+</body>
+</html>
