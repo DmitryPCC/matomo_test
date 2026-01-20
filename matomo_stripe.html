@@ -1,80 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Matomo + Stripe session_id test</title>
+  <meta charset="UTF-8">
+  <title>Matomo + Stripe MVP test</title>
 
-  <!-- ========================= -->
-  <!-- Matomo base configuration -->
-  <!-- ========================= -->
+  <!-- Matomo -->
   <script>
     var _paq = window._paq = window._paq || [];
 
-    // ВАЖНО: pageview будет отправлен ПОСЛЕ setCustomDimension
-    _paq.push(['enableLinkTracking']);
-  </script>
+    // Генерируем session_id ОДИН РАЗ на загрузку страницы
+    window.session_id = 'sess_' + crypto.randomUUID();
 
-  <script>
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+
     (function() {
-      var u = "https://MATOMO_URL/"; // <-- замени
+      var u = "https://stripemtm.matomo.cloud/";
       _paq.push(['setTrackerUrl', u + 'matomo.php']);
-      _paq.push(['setSiteId', 'SITE_ID']); // <-- замени
-      var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
-      g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+      _paq.push(['setSiteId', '1']);
+      var d = document,
+          g = d.createElement('script'),
+          s = d.getElementsByTagName('script')[0];
+      g.async = true;
+      g.src = 'https://cdn.matomo.cloud/stripemtm.matomo.cloud/matomo.js';
+      s.parentNode.insertBefore(g, s);
     })();
   </script>
+  <!-- End Matomo Code -->
 </head>
 
 <body>
+  <h1>Matomo + Stripe MVP test</h1>
 
-  <h1>Matomo + Stripe session_id test</h1>
+  <p><strong>Session ID (для отладки):</strong></p>
+  <pre id="sid"></pre>
 
-  <p><strong>Generated session_id:</strong></p>
-  <pre id="sessionBox"></pre>
-
-  <button id="buyBtn">Buy (go to Stripe)</button>
+  <button id="buyBtn">Buy → Stripe</button>
 
   <script>
-    // =========================
-    // 1. Генерация session_id
-    // =========================
-    const session_id = 'sess_' + crypto.randomUUID();
-    window.internal_session_id = session_id;
+    // Показываем session_id на странице (удобно для проверки)
+    document.getElementById('sid').textContent = window.session_id;
 
-    document.getElementById('sessionBox').innerText = session_id;
+    document.getElementById('buyBtn').addEventListener('click', function () {
 
-    // =====================================
-    // 2. Передаём session_id в Matomo
-    // Custom Dimension (Visit scope)
-    // =====================================
-    _paq.push([
-      'setCustomDimension',
-      1, // <-- CUSTOM_DIMENSION_ID из Matomo
-      session_id
-    ]);
+      // 1️⃣ Отправляем событие в Matomo
+      _paq.push([
+        'trackEvent',
+        'payment',
+        'redirect_to_stripe',
+        window.session_id
+      ]);
 
-    // =========================
-    // 3. Теперь отправляем PageView
-    // =========================
-    _paq.push(['trackPageView']);
+      // 2️⃣ Редиректим в Stripe с тем же session_id
+      const stripePaymentLink =
+        'https://buy.stripe.com/test_8x2fZh7x0e8fc8l3brbsc01'
+        + '?client_reference_id=' + window.session_id;
 
-    console.log('session_id set in Matomo:', session_id);
-
-    // =========================
-    // 4. Кнопка Buy → Stripe
-    // =========================
-    document.getElementById('buyBtn').addEventListener('click', () => {
-      const STRIPE_PAYMENT_LINK =
-        'https://buy.stripe.com/test_XXXXXXXX'; // <-- замени
-
-      const stripeUrl =
-        STRIPE_PAYMENT_LINK +
-        '?client_reference_id=' +
-        encodeURIComponent(session_id);
-
-      window.location.href = stripeUrl;
+      window.location.href = stripePaymentLink;
     });
   </script>
-
 </body>
 </html>
